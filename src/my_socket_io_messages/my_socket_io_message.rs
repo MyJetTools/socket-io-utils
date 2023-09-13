@@ -20,20 +20,20 @@ pub enum MySocketIoMessage {
 impl MySocketIoMessage {
     pub fn as_str(&self) -> StrOrString {
         match self {
-            MySocketIoMessage::Ping => StrOrString::crate_as_str("2"),
-            MySocketIoMessage::Pong => StrOrString::crate_as_str("3"),
-            MySocketIoMessage::Disconnect => StrOrString::crate_as_str("41"),
+            MySocketIoMessage::Ping => StrOrString::create_as_str("2"),
+            MySocketIoMessage::Pong => StrOrString::create_as_str("3"),
+            MySocketIoMessage::Disconnect => StrOrString::create_as_str("41"),
             MySocketIoMessage::Message(msg) => {
                 let mut result = Vec::new();
                 result.extend_from_slice("42".as_bytes());
                 msg.serialize(&mut result);
-                StrOrString::crate_as_string(String::from_utf8(result).unwrap())
+                StrOrString::create_as_string(String::from_utf8(result).unwrap())
             }
             MySocketIoMessage::Ack(msg) => {
                 let mut result = Vec::new();
                 result.extend_from_slice("43".as_bytes());
                 msg.serialize(&mut result);
-                StrOrString::crate_as_string(String::from_utf8(result).unwrap())
+                StrOrString::create_as_string(String::from_utf8(result).unwrap())
             }
             MySocketIoMessage::RequestAccess(nsp) => {
                 if let Some(nsp) = nsp {
@@ -41,9 +41,9 @@ impl MySocketIoMessage {
                     result.extend_from_slice("40".as_bytes());
                     result.extend_from_slice(nsp.as_bytes());
                     result.push(b',');
-                    StrOrString::crate_as_string(String::from_utf8(result).unwrap())
+                    StrOrString::create_as_string(String::from_utf8(result).unwrap())
                 } else {
-                    StrOrString::crate_as_str("40")
+                    StrOrString::create_as_str("40")
                 }
             }
             MySocketIoMessage::GrandAccess(data) => {
@@ -56,7 +56,7 @@ impl MySocketIoMessage {
                 result.extend_from_slice("{\"sid\":\"".as_bytes());
                 result.extend_from_slice(data.sid.as_bytes());
                 result.extend_from_slice("\"}".as_bytes());
-                StrOrString::crate_as_string(String::from_utf8(result).unwrap())
+                StrOrString::create_as_string(String::from_utf8(result).unwrap())
             }
         }
     }
