@@ -92,8 +92,8 @@ mod test {
     fn test_message() {
         let mut json_writer = JsonArrayWriter::new();
 
-        json_writer.write_string_element("Test1");
-        json_writer.write_string_element("Test2");
+        json_writer.write("Test1");
+        json_writer.write("Test2");
 
         let msg = MySocketIoMessage::Message(MySocketIoTextPayload {
             nsp: None,
