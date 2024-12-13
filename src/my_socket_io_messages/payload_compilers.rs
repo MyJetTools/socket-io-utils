@@ -1,6 +1,21 @@
 use std::time::Duration;
 
+use my_json::json_writer::JsonObjectWriter;
+
 use crate::SocketIoSettings;
+
+pub fn compile_connect_to_namespace(namespace: &str, sid: &str) -> Vec<u8> {
+    let mut my_json = JsonObjectWriter::new();
+
+    my_json.write("type", "CONNECT");
+    my_json.write("namespace", namespace);
+
+    my_json.write_json_object("data", |json_object| {
+        json_object.write("sid", sid);
+    });
+
+    my_json.build()
+}
 
 pub fn compile_connect_payload(sid: &str) -> Vec<u8> {
     let mut content = Vec::new();
