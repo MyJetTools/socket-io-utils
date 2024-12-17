@@ -1,6 +1,6 @@
 use rust_extensions::StrOrString;
 
-use crate::{SocketIoContract, SocketIoData, SocketIoPayload};
+use crate::{SocketIoContract, SocketIoEventParameter, SocketIoPayload};
 
 pub enum SocketIoMessage {
     Connect {
@@ -12,12 +12,12 @@ pub enum SocketIoMessage {
     },
     Event {
         namespace: StrOrString<'static>,
-        data: Vec<SocketIoData>,
+        data: Vec<SocketIoEventParameter>,
         ack: Option<u64>,
     },
     Ack {
         namespace: StrOrString<'static>,
-        data: Vec<SocketIoData>,
+        data: Vec<SocketIoEventParameter>,
         ack: Option<u64>,
     },
     ConnectError {
@@ -155,7 +155,7 @@ impl SocketIoMessage {
 mod tests {
 
     use super::SocketIoMessage;
-    use crate::{SocketIoData, SocketIoPayload};
+    use crate::{SocketIoEventParameter, SocketIoPayload};
 
     #[test]
     fn test_connect_to_default_namespace() {
@@ -234,7 +234,7 @@ mod tests {
 
     #[test]
     fn test_sending_event_to_default_namespace() {
-        let data = vec![SocketIoData::String("foo".into())];
+        let data = vec![SocketIoEventParameter::String("foo".into())];
 
         let message = SocketIoMessage::Event {
             namespace: "/".into(),
@@ -265,7 +265,7 @@ mod tests {
 
     #[test]
     fn test_sending_event_to_custom_namespace() {
-        let data = vec![SocketIoData::String("foo".into())];
+        let data = vec![SocketIoEventParameter::String("foo".into())];
 
         let message = SocketIoMessage::Event {
             namespace: "/admin".into(),
@@ -296,7 +296,7 @@ mod tests {
 
     #[test]
     fn test_sending_event_to_default_namespace_with_ack() {
-        let data = vec![SocketIoData::String("foo".into())];
+        let data = vec![SocketIoEventParameter::String("foo".into())];
 
         let message = SocketIoMessage::Event {
             namespace: "/".into(),
@@ -327,7 +327,7 @@ mod tests {
 
     #[test]
     fn test_ack_with_custom_namespace() {
-        let data = vec![SocketIoData::String("bar".into())];
+        let data = vec![SocketIoEventParameter::String("bar".into())];
 
         let message = SocketIoMessage::Ack {
             namespace: "/admin".into(),

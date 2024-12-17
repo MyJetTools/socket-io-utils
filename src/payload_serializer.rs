@@ -1,4 +1,4 @@
-use crate::{SocketIoData, SocketIoDataSerializer};
+use crate::{SocketIoDataSerializer, SocketIoEventParameter};
 
 #[derive(Debug, Default)]
 pub struct SocketIoPayload {
@@ -34,7 +34,7 @@ pub fn serialize_data(out: &mut SocketIoPayload, namespace: &str, data: Option<(
 pub fn serialize_event_data(
     out: &mut SocketIoPayload,
     namespace: &str,
-    data: &Vec<SocketIoData>,
+    data: &Vec<SocketIoEventParameter>,
     ack: Option<u64>,
 ) {
     if namespace != "/" {
@@ -49,10 +49,10 @@ pub fn serialize_event_data(
 
     for value in data {
         match value {
-            SocketIoData::String(value) => {
+            SocketIoEventParameter::String(value) => {
                 data_builder.write_value(value.as_str());
             }
-            SocketIoData::Binary(value) => {
+            SocketIoEventParameter::Binary(value) => {
                 todo!("Binary data serialization is not implemented")
             }
         }

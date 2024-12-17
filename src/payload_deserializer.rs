@@ -1,6 +1,6 @@
 use my_json::json_reader::JsonFirstLineIterator;
 
-use crate::SocketIoData;
+use crate::SocketIoEventParameter;
 
 pub fn deserialize_data(value: &str) -> (&str, Option<(String, String)>) {
     let (namespace, _, data) = read_name_space_and_data_position(value);
@@ -30,7 +30,7 @@ pub fn deserialize_data(value: &str) -> (&str, Option<(String, String)>) {
     )
 }
 
-pub fn deserialize_event_data(value: &str) -> (&str, Option<u64>, Vec<SocketIoData>) {
+pub fn deserialize_event_data(value: &str) -> (&str, Option<u64>, Vec<SocketIoEventParameter>) {
     let (namespace, ack, data) = read_name_space_and_data_position(value);
 
     if data.is_none() {
@@ -39,7 +39,7 @@ pub fn deserialize_event_data(value: &str) -> (&str, Option<u64>, Vec<SocketIoDa
 
     let data = data.unwrap();
 
-    let data = SocketIoData::parse(data);
+    let data = SocketIoEventParameter::parse(data);
 
     (namespace, ack, data)
 }

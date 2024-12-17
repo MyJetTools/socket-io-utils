@@ -1,20 +1,20 @@
 use rust_extensions::StrOrString;
 
-pub enum SocketIoData {
+pub enum SocketIoEventParameter {
     String(StrOrString<'static>),
     Binary(Vec<u8>),
 }
 
-impl SocketIoData {
+impl SocketIoEventParameter {
     pub fn unwrap_as_str(&self) -> &str {
         match self {
-            SocketIoData::String(value) => value.as_str(),
-            SocketIoData::Binary { .. } => panic!("Expected string, found binary"),
+            Self::String(value) => value.as_str(),
+            Self::Binary { .. } => panic!("Expected string, found binary"),
         }
     }
 }
 
-impl SocketIoData {
+impl SocketIoEventParameter {
     pub fn parse(value: &str) -> Vec<Self> {
         let mut result = Vec::new();
 
@@ -52,7 +52,7 @@ impl SocketIoData {
 
             if value_is_ready {
                 let value = value_to_add.take().unwrap();
-                result.push(SocketIoData::String(value.into()));
+                result.push(Self::String(value.into()));
             }
         }
 
