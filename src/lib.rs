@@ -13,3 +13,5 @@ mod payload_deserializer;
 pub use payload_deserializer::*;
 mod payload_serializer;
 pub use payload_serializer::*;
+mod handshake_model;
+pub use handshake_model::*;

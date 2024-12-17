@@ -1,7 +1,7 @@
 use crate::*;
 
 pub enum SocketIoContract {
-    Open,
+    Open(SocketIoHttpResponseModel),
     Close,
     Ping { with_probe: bool },
     Pong { with_probe: bool },
@@ -19,7 +19,11 @@ impl SocketIoContract {
         let first_char = src.chars().next().unwrap();
 
         match first_char {
-            '0' => Self::Open,
+            '0' => {
+                let payload = &src[1..];
+                let model = serde_json::from_str(payload).unwrap();
+                Self::Open(model)
+            }
             '1' => Self::Close,
             '2' => {
                 if src.len() > 1 {
@@ -48,8 +52,11 @@ impl SocketIoContract {
     pub fn serialize(&self) -> SocketIoPayload {
         let mut result = SocketIoPayload::new();
         match self {
-            Self::Open => {
+            Self::Open(model) => {
                 result.text_frame.push('0');
+
+                let json_model = serde_json::to_string(model).unwrap();
+                result.text_frame.push_str(&json_model);
             }
             Self::Close => {
                 result.text_frame.push('1');
