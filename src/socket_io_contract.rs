@@ -1,6 +1,6 @@
 use crate::*;
 
-pub enum SocketIoWsContract {
+pub enum SocketIoContract {
     Open,
     Close,
     Ping { with_probe: bool },
@@ -10,7 +10,7 @@ pub enum SocketIoWsContract {
     Noop,
 }
 
-impl SocketIoWsContract {
+impl SocketIoContract {
     pub fn deserialize(src: &str) -> Self {
         if src.is_empty() {
             panic!("Empty string");
@@ -23,57 +23,57 @@ impl SocketIoWsContract {
             '1' => Self::Close,
             '2' => {
                 if src.len() > 1 {
-                    SocketIoWsContract::Ping { with_probe: true }
+                    Self::Ping { with_probe: true }
                 } else {
-                    SocketIoWsContract::Ping { with_probe: false }
+                    Self::Ping { with_probe: false }
                 }
             }
             '3' => {
                 if src.len() > 1 {
-                    SocketIoWsContract::Pong { with_probe: true }
+                    Self::Pong { with_probe: true }
                 } else {
-                    SocketIoWsContract::Pong { with_probe: false }
+                    Self::Pong { with_probe: false }
                 }
             }
             '4' => {
                 let msg = SocketIoMessage::deserialize(&src[1..]);
-                SocketIoWsContract::Message(msg)
+                Self::Message(msg)
             }
-            '5' => SocketIoWsContract::Upgrade,
-            '6' => SocketIoWsContract::Noop,
+            '5' => Self::Upgrade,
+            '6' => Self::Noop,
             _ => panic!("Invalid socket.io payload {}", src),
         }
     }
 
     pub fn serialize(&self, out: &mut SocketIoPayload) {
         match self {
-            SocketIoWsContract::Open => {
+            Self::Open => {
                 out.text_frame.push('0');
             }
-            SocketIoWsContract::Close => {
+            Self::Close => {
                 out.text_frame.push('1');
             }
-            SocketIoWsContract::Ping { with_probe } => {
+            Self::Ping { with_probe } => {
                 out.text_frame.push('2');
                 if *with_probe {
                     out.text_frame.push_str("probe");
                 }
             }
-            SocketIoWsContract::Pong { with_probe } => {
+            Self::Pong { with_probe } => {
                 out.text_frame.push('3');
 
                 if *with_probe {
                     out.text_frame.push_str("probe");
                 }
             }
-            SocketIoWsContract::Message(msg) => {
+            Self::Message(msg) => {
                 out.text_frame.push('4');
                 msg.serialize(out);
             }
-            SocketIoWsContract::Upgrade => {
+            Self::Upgrade => {
                 out.text_frame.push('5');
             }
-            SocketIoWsContract::Noop => {
+            Self::Noop => {
                 out.text_frame.push('6');
             }
         }

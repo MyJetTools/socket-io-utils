@@ -1,6 +1,6 @@
 use rust_extensions::StrOrString;
 
-use crate::{SocketIoData, SocketIoPayload};
+use crate::{SocketIoContract, SocketIoData, SocketIoPayload};
 
 pub enum SocketIoMessage {
     Connect {
@@ -24,6 +24,12 @@ pub enum SocketIoMessage {
         namespace: StrOrString<'static>,
         message: StrOrString<'static>,
     },
+}
+
+impl Into<SocketIoContract> for SocketIoMessage {
+    fn into(self) -> SocketIoContract {
+        SocketIoContract::Message(self)
+    }
 }
 
 impl SocketIoMessage {
