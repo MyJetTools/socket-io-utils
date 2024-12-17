@@ -2,12 +2,14 @@ use rust_extensions::StrOrString;
 
 pub enum SocketIoData {
     String(StrOrString<'static>),
+    Binary(Vec<u8>),
 }
 
 impl SocketIoData {
     pub fn unwrap_as_str(&self) -> &str {
         match self {
             SocketIoData::String(value) => value.as_str(),
+            SocketIoData::Binary { .. } => panic!("Expected string, found binary"),
         }
     }
 }
