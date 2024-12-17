@@ -45,37 +45,40 @@ impl SocketIoContract {
         }
     }
 
-    pub fn serialize(&self, out: &mut SocketIoPayload) {
+    pub fn serialize(&self) -> SocketIoPayload {
+        let mut result = SocketIoPayload::new();
         match self {
             Self::Open => {
-                out.text_frame.push('0');
+                result.text_frame.push('0');
             }
             Self::Close => {
-                out.text_frame.push('1');
+                result.text_frame.push('1');
             }
             Self::Ping { with_probe } => {
-                out.text_frame.push('2');
+                result.text_frame.push('2');
                 if *with_probe {
-                    out.text_frame.push_str("probe");
+                    result.text_frame.push_str("probe");
                 }
             }
             Self::Pong { with_probe } => {
-                out.text_frame.push('3');
+                result.text_frame.push('3');
 
                 if *with_probe {
-                    out.text_frame.push_str("probe");
+                    result.text_frame.push_str("probe");
                 }
             }
             Self::Message(msg) => {
-                out.text_frame.push('4');
-                msg.serialize(out);
+                result.text_frame.push('4');
+                msg.serialize(&mut result);
             }
             Self::Upgrade => {
-                out.text_frame.push('5');
+                result.text_frame.push('5');
             }
             Self::Noop => {
-                out.text_frame.push('6');
+                result.text_frame.push('6');
             }
         }
+
+        result
     }
 }
