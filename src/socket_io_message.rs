@@ -18,7 +18,7 @@ pub enum SocketIoMessage {
     Ack {
         namespace: StrOrString<'static>,
         data: Vec<SocketIoEventParameter>,
-        ack: Option<u64>,
+        ack: u64,
     },
     ConnectError {
         namespace: StrOrString<'static>,
@@ -73,10 +73,14 @@ impl SocketIoMessage {
                 let (namespace, ack, data) =
                     super::payload_deserializer::deserialize_event_data(&value[1..]);
 
+                if ack.is_none() {
+                    panic!("Ack number is missing in Ack message");
+                }
+
                 SocketIoMessage::Ack {
                     namespace: namespace.to_string().into(),
                     data,
-                    ack,
+                    ack: ack.unwrap(),
                 }
             }
 
@@ -136,7 +140,7 @@ impl SocketIoMessage {
                     out,
                     namespace.as_str(),
                     data,
-                    ack.clone(),
+                    Some(*ack),
                 );
             }
             SocketIoMessage::ConnectError { namespace, message } => {
@@ -332,7 +336,7 @@ mod tests {
         let message = SocketIoMessage::Ack {
             namespace: "/admin".into(),
             data,
-            ack: Some(13),
+            ack: 13,
         };
 
         let mut result = SocketIoPayload::new();
@@ -350,7 +354,7 @@ mod tests {
             } => {
                 assert_eq!(namespace.as_str(), "/admin");
                 assert_eq!(data.get(0).unwrap().unwrap_as_str(), "bar");
-                assert_eq!(ack.unwrap(), 13);
+                assert_eq!(ack, 13);
             }
             _ => panic!("Invalid message"),
         }
