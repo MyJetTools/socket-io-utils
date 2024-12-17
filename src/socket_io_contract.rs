@@ -1,7 +1,7 @@
 use crate::*;
 
 pub enum SocketIoContract {
-    Open(SocketIoHttpResponseModel),
+    Open(SocketIoHandshakeOpenModel),
     Close,
     Ping { with_probe: bool },
     Pong { with_probe: bool },

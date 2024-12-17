@@ -1,7 +1,7 @@
 use serde::*;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct SocketIoHttpResponseModel {
+pub struct SocketIoHandshakeOpenModel {
     pub sid: String,
     pub upgrades: Vec<String>,
     #[serde(rename = "pingInterval")]
