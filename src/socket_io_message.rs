@@ -33,6 +33,15 @@ impl Into<SocketIoContract> for SocketIoMessage {
 }
 
 impl SocketIoMessage {
+    pub fn get_namespace(&self) -> &str {
+        match self {
+            SocketIoMessage::Connect { namespace, .. } => namespace.as_str(),
+            SocketIoMessage::Disconnect { namespace, .. } => namespace.as_str(),
+            SocketIoMessage::Event { namespace, .. } => namespace.as_str(),
+            SocketIoMessage::Ack { namespace, .. } => namespace.as_str(),
+            SocketIoMessage::ConnectError { namespace, .. } => namespace.as_str(),
+        }
+    }
     pub fn deserialize(value: &str) -> Self {
         let first_char = value.chars().next().unwrap();
 
