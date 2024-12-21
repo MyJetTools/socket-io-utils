@@ -85,7 +85,7 @@ impl<'s> SocketIoPayloadData<'s> {
             );
         }
 
-        let payload = payload.unwrap().as_unescaped_str().map(|x| x.to_string());
+        let payload = payload.unwrap().as_raw_str().map(|x| x.to_string());
 
         Some((name, payload.unwrap_or_else(|| String::new())))
     }
