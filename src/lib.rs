@@ -5,8 +5,7 @@ mod socket_io_contract;
 pub use socket_io_contract::*;
 mod socket_io_message;
 pub use socket_io_message::*;
-mod socket_id_data_serializer;
-pub use socket_id_data_serializer::*;
+
 mod socket_io_data;
 pub use socket_io_data::*;
 mod payload_deserializer;

@@ -1,6 +1,6 @@
 use rust_extensions::StrOrString;
 
-use crate::{SocketIoContract, SocketIoEventParameter, SocketIoPayload};
+use crate::{SocketIoContract, SocketIoPayload};
 
 pub enum SocketIoMessage {
     Connect {
@@ -12,13 +12,15 @@ pub enum SocketIoMessage {
     },
     Event {
         namespace: StrOrString<'static>,
-        data: Vec<SocketIoEventParameter>,
-        ack: Option<u64>,
+        event_name: StrOrString<'static>,
+        data: StrOrString<'static>,
+        ack: Option<i64>,
     },
     Ack {
         namespace: StrOrString<'static>,
-        data: Vec<SocketIoEventParameter>,
-        ack: u64,
+        event_name: StrOrString<'static>,
+        data: StrOrString<'static>,
+        ack: i64,
     },
     ConnectError {
         namespace: StrOrString<'static>,
@@ -47,61 +49,81 @@ impl SocketIoMessage {
 
         match first_char {
             '0' => {
-                let (namespace, values) =
-                    super::payload_deserializer::deserialize_data(&value[1..]);
+                let payload_data = super::payload_deserializer::deserialize_data(&value[1..]);
 
-                let sid =
-                    values.and_then(|(key, value)| if key == "sid" { Some(value) } else { None });
+                let sid = payload_data.get_field("sid");
 
                 SocketIoMessage::Connect {
-                    namespace: namespace.to_string().into(),
+                    namespace: payload_data.namespace.to_string().into(),
                     sid: sid.map(|s| s.to_string().into()),
                 }
             }
 
             '1' => {
-                let (namespace, _) = super::payload_deserializer::deserialize_data(&value[1..]);
+                let payload_data = super::payload_deserializer::deserialize_data(&value[1..]);
 
                 SocketIoMessage::Disconnect {
-                    namespace: namespace.to_string().into(),
+                    namespace: payload_data.namespace.to_string().into(),
                 }
             }
 
             '2' => {
-                let (namespace, ack, data) =
-                    super::payload_deserializer::deserialize_event_data(&value[1..]);
+                let payload_data = super::payload_deserializer::deserialize_event_data(&value[1..]);
+
+                let event_data = payload_data.get_event_data();
+
+                if event_data.is_none() {
+                    panic!("Event data is missing in Event message");
+                }
+
+                let event_data = event_data.unwrap();
 
                 SocketIoMessage::Event {
-                    namespace: namespace.to_string().into(),
-                    data,
-                    ack,
+                    namespace: payload_data.namespace.to_string().into(),
+                    event_name: event_data.0.into(),
+                    data: event_data.1.into(),
+                    ack: payload_data.ack,
                 }
             }
 
             '3' => {
-                let (namespace, ack, data) =
-                    super::payload_deserializer::deserialize_event_data(&value[1..]);
+                let payload_data = super::payload_deserializer::deserialize_event_data(&value[1..]);
 
-                if ack.is_none() {
+                if payload_data.ack.is_none() {
                     panic!("Ack number is missing in Ack message");
                 }
 
+                let event_data = payload_data.get_event_data();
+
+                if event_data.is_none() {
+                    panic!("Event data is missing in Ack message");
+                }
+
+                let event_data = event_data.unwrap();
+
                 SocketIoMessage::Ack {
-                    namespace: namespace.to_string().into(),
-                    data,
-                    ack: ack.unwrap(),
+                    namespace: payload_data.namespace.to_string().into(),
+                    event_name: event_data.0.into(),
+                    data: event_data.1.into(),
+                    ack: payload_data.ack.unwrap(),
                 }
             }
 
             '4' => {
-                let (namespace, message) =
-                    super::payload_deserializer::deserialize_data(&value[1..]);
+                let payload_data = super::payload_deserializer::deserialize_data(&value[1..]);
 
-                let message = message.unwrap();
+                let message = payload_data.get_field("message");
 
                 SocketIoMessage::ConnectError {
-                    namespace: namespace.to_string().into(),
-                    message: message.1.into(),
+                    namespace: payload_data.namespace.to_string().into(),
+                    message: match message {
+                        Some(m) => m.to_string().into(),
+                        None => format!(
+                            "Unknown (no message found in data) [{}]",
+                            payload_data.data.unwrap_or_default()
+                        )
+                        .into(),
+                    },
                 }
             }
 
@@ -127,6 +149,7 @@ impl SocketIoMessage {
             }
             SocketIoMessage::Event {
                 namespace,
+                event_name,
                 data,
                 ack,
             } => {
@@ -135,12 +158,14 @@ impl SocketIoMessage {
                 super::payload_serializer::serialize_event_data(
                     out,
                     namespace.as_str(),
-                    data,
+                    event_name.as_str(),
+                    data.as_str(),
                     ack.clone(),
                 );
             }
             SocketIoMessage::Ack {
                 namespace,
+                event_name,
                 data,
                 ack,
             } => {
@@ -148,7 +173,8 @@ impl SocketIoMessage {
                 super::payload_serializer::serialize_event_data(
                     out,
                     namespace.as_str(),
-                    data,
+                    event_name.as_str(),
+                    data.as_str(),
                     Some(*ack),
                 );
             }
@@ -168,7 +194,7 @@ impl SocketIoMessage {
 mod tests {
 
     use super::SocketIoMessage;
-    use crate::{SocketIoEventParameter, SocketIoPayload};
+    use crate::SocketIoPayload;
 
     #[test]
     fn test_connect_to_default_namespace() {
@@ -247,11 +273,10 @@ mod tests {
 
     #[test]
     fn test_sending_event_to_default_namespace() {
-        let data = vec![SocketIoEventParameter::String("foo".into())];
-
         let message = SocketIoMessage::Event {
             namespace: "/".into(),
-            data,
+            event_name: "foo".into(),
+            data: "".into(),
             ack: None,
         };
 
@@ -265,11 +290,14 @@ mod tests {
         match result {
             SocketIoMessage::Event {
                 namespace,
+
+                event_name,
                 data,
                 ack,
             } => {
                 assert_eq!(namespace.as_str(), "/");
-                assert_eq!(data.get(0).unwrap().unwrap_as_str(), "foo");
+                assert_eq!(event_name.as_str(), "foo");
+                assert_eq!(data.as_str(), "");
                 assert!(ack.is_none());
             }
             _ => panic!("Invalid message"),
@@ -278,11 +306,10 @@ mod tests {
 
     #[test]
     fn test_sending_event_to_custom_namespace() {
-        let data = vec![SocketIoEventParameter::String("foo".into())];
-
         let message = SocketIoMessage::Event {
             namespace: "/admin".into(),
-            data,
+            event_name: "foo".into(),
+            data: "".into(),
             ack: None,
         };
 
@@ -296,11 +323,51 @@ mod tests {
         match result {
             SocketIoMessage::Event {
                 namespace,
+                event_name,
                 data,
                 ack,
             } => {
                 assert_eq!(namespace.as_str(), "/admin");
-                assert_eq!(data.get(0).unwrap().unwrap_as_str(), "foo");
+                assert_eq!(event_name.as_str(), "foo");
+                assert_eq!(data.as_str(), "");
+                assert!(ack.is_none());
+            }
+            _ => panic!("Invalid message"),
+        }
+    }
+
+    #[test]
+    fn test_sending_event_to_custom_namespace_with_params() {
+        let message = SocketIoMessage::Event {
+            namespace: "/admin".into(),
+            event_name: "foo".into(),
+            data: "{\"type\":\"AccountStatus\",\"accountId\":\"L#711000\"}".into(),
+            ack: None,
+        };
+
+        let mut result = SocketIoPayload::new();
+        message.serialize(&mut result);
+
+        assert_eq!(
+            result.text_frame,
+            r#"2/admin,["foo",{"type":"AccountStatus","accountId":"L#711000"}]"#
+        );
+
+        let result = SocketIoMessage::deserialize(&result.text_frame);
+
+        match result {
+            SocketIoMessage::Event {
+                namespace,
+                event_name,
+                data,
+                ack,
+            } => {
+                assert_eq!(namespace.as_str(), "/admin");
+                assert_eq!(event_name.as_str(), "foo");
+                assert_eq!(
+                    data.as_str(),
+                    "{\"type\":\"AccountStatus\",\"accountId\":\"L#711000\"}"
+                );
                 assert!(ack.is_none());
             }
             _ => panic!("Invalid message"),
@@ -309,11 +376,10 @@ mod tests {
 
     #[test]
     fn test_sending_event_to_default_namespace_with_ack() {
-        let data = vec![SocketIoEventParameter::String("foo".into())];
-
         let message = SocketIoMessage::Event {
             namespace: "/".into(),
-            data,
+            event_name: "foo".into(),
+            data: "".into(),
             ack: Some(12),
         };
 
@@ -327,11 +393,13 @@ mod tests {
         match result {
             SocketIoMessage::Event {
                 namespace,
+                event_name,
                 data,
                 ack,
             } => {
                 assert_eq!(namespace.as_str(), "/");
-                assert_eq!(data.get(0).unwrap().unwrap_as_str(), "foo");
+                assert_eq!(event_name.as_str(), "foo");
+                assert_eq!(data.as_str(), "");
                 assert_eq!(ack.unwrap(), 12);
             }
             _ => panic!("Invalid message"),
@@ -340,11 +408,10 @@ mod tests {
 
     #[test]
     fn test_ack_with_custom_namespace() {
-        let data = vec![SocketIoEventParameter::String("bar".into())];
-
         let message = SocketIoMessage::Ack {
             namespace: "/admin".into(),
-            data,
+            event_name: "bar".into(),
+            data: "".into(),
             ack: 13,
         };
 
@@ -358,11 +425,13 @@ mod tests {
         match result {
             SocketIoMessage::Ack {
                 namespace,
+                event_name,
                 data,
                 ack,
             } => {
                 assert_eq!(namespace.as_str(), "/admin");
-                assert_eq!(data.get(0).unwrap().unwrap_as_str(), "bar");
+                assert_eq!(event_name.as_str(), "bar");
+                assert_eq!(data.as_str(), "");
                 assert_eq!(ack, 13);
             }
             _ => panic!("Invalid message"),
